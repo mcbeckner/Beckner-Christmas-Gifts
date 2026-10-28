@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎄 Family Christmas Gift & Scavenger Hunt Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      @page {
+        size: landscape;
+        margin: 0.4in;
+      }
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background: white !important; margin: 0; padding: 0; }
+      main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+
+      /* Half-page landscape layout for Scavenger Number Lists (2 per page) */
+      #scavengerGrid {
+        display: block !important;
+        font-size: 0;
+      }
+      .scavenger-number-card {
+        display: inline-flex !important;
+        vertical-align: top !important;
+        width: 48% !important;
+        height: 92vh !important;
+        margin: 0 1% !important;
+        box-sizing: border-box !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        font-size: 1rem;
+      }
+      .scavenger-number-card:nth-child(2n) {
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+
+      /* Smaller cuttable slips for Scavenger Hunt Clues */
+      #cluesPrintGrid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+      }
+      .clue-print-slip {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="bg-red-700 text-white shadow-lg no-print">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
+            🎄 Christmas Gift & Mystery Tag Tracker
+          </h1>
+          <span id="dbStatusBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30">
+            ⏳ Connecting...
+          </span>
+        </div>
+        <p class="text-red-100 text-sm mt-1">
+          Scavenger Hunt Number Generator & Budget Manager
+        </p>
+      </div>
+      <div class="bg-red-800 px-5 py-3 rounded-xl border border-red-600 text-right">
+        <span class="text-xs uppercase tracking-wider text-red-200 block">Grand Total Spent</span>
+        <span id="grandTotal" class="text-2xl font-bold text-white">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 flex flex-wrap gap-2 border-t border-red-600 pt-3">
+      <button onclick="switchTab('tracker')" id="tab-tracker" class="px-4 py-2 rounded-t-lg font-semibold bg-slate-50 text-red-700">
+        🎁 Gift & Budget Tracker
+      </button>
+      <button onclick="switchTab('lookup')" id="tab-lookup" class="px-4 py-2 rounded-t-lg font-semibold text-red-100 hover:bg-red-600">
+        🔍 Christmas Morning Lookup
+      </button>
+      <button onclick="switchTab('scavenger')" id="tab-scavenger" class="px-4 py-2 rounded-t-lg font-semibold text-red-100 hover:bg-red-600">
+        📜 Scavenger Hunt Number Lists
+      </button>
+      <button onclick="switchTab('clues')" id="tab-clues" class="px-4 py-2 rounded-t-lg font-semibold text-red-100 hover:bg-red-600">
+        🗺️ Scavenger Hunt Clues
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- TAB 1: GIFT & BUDGET TRACKER -->
+    <section id="view-tracker" class="space-y-8">
+      <!-- Add Gift Form -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 no-print">
+        <h2 class="text-lg font-bold text-slate-800 mb-4">➕ Add a New Present</h2>
+        <form id="giftForm" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Recipient</label>
+            <select id="recipientInput" required class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none">
+              <optgroup label="Kids">
+                <option value="Tallon">Tallon</option>
+                <option value="Paisley">Paisley</option>
+                <option value="Julian">Julian</option>
+                <option value="Marshall">Marshall</option>
+              </optgroup>
+              <optgroup label="Grandparents">
+                <option value="Brian">Brian</option>
+                <option value="Debbie">Debbie</option>
+              </optgroup>
+              <optgroup label="Us">
+                <option value="Mitch">Mitch</option>
+                <option value="Dee">Dee</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Gift Description</label>
+            <input type="text" id="giftNameInput" placeholder="e.g., LEGO Star Wars Set" required class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cost ($)</label>
+            <input type="number" step="0.01" min="0" id="costInput" placeholder="0.00" required class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" />
+          </div>
+
+          <div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition shadow">
+              Assign # & Add Gift
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Summary Cards Grid -->
+      <div>
+        <h2 class="text-lg font-bold text-slate-800 mb-3">👨‍👩‍👧‍👦 Per-Person Breakdown</h2>
+        <div id="peopleGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Dynamically populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CHRISTMAS MORNING MASTER LOOKUP -->
+    <section id="view-lookup" class="hidden space-y-6">
+      <!-- Compact Top Control Bar -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="w-full md:w-1/3">
+          <input type="text" id="searchTagInput" oninput="renderLookup()" placeholder="🔍 Quick search tag # or item..." class="w-full text-sm rounded-lg border border-slate-300 px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" />
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-xs text-slate-500 font-medium hidden sm:inline">Tap checkmark to cross out opened presents</span>
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+            <input type="checkbox" id="spoilerToggle" onchange="renderLookup()" class="rounded text-red-600 focus:ring-red-500" />
+            Show Gift Names
+          </label>
+        </div>
+      </div>
+
+      <!-- Per-Person Cards Grid (No Costs, Checkboxes & Strikethroughs) -->
+      <div>
+        <div id="lookupGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Dynamically populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SCAVENGER HUNT NUMBER LISTS (HALF-PAGE LANDSCAPE PRINT) -->
+    <section id="view-scavenger" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center no-print">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">📜 Scavenger Hunt Master Number Lists</h2>
+          <p class="text-slate-500 text-sm">Prints in <strong>Landscape Mode</strong> with each person's list taking up exactly <strong>half the page</strong> (2 people per sheet).</p>
+        </div>
+        <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-2.5 rounded-lg shadow">
+          🖨️ Print Half-Page Lists (Landscape)
+        </button>
+      </div>
+
+      <div id="scavengerGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- TAB 4: SCAVENGER HUNT CLUES MANAGER & PRINTER -->
+    <section id="view-clues" class="hidden space-y-6">
+      <!-- Add Clue Form (Hidden when printing) -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 no-print">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-800">🗺️ Add Scavenger Hunt Clues</h2>
+            <p class="text-slate-500 text-sm">Create each person's trail of clues leading up to their hidden Master Number List. Prints as compact clue slips.</p>
+          </div>
+          <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-5 py-2.5 rounded-lg shadow shrink-0">
+            🖨️ Print All Clue Slips
+          </button>
+        </div>
+
+        <form id="clueForm" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end pt-2 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Person</label>
+            <select id="clueRecipientInput" required class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none">
+              <optgroup label="Kids">
+                <option value="Tallon">Tallon</option>
+                <option value="Paisley">Paisley</option>
+                <option value="Julian">Julian</option>
+                <option value="Marshall">Marshall</option>
+              </optgroup>
+              <optgroup label="Grandparents">
+                <option value="Brian">Brian</option>
+                <option value="Debbie">Debbie</option>
+              </optgroup>
+              <optgroup label="Us">
+                <option value="Mitch">Mitch</option>
+                <option value="Dee">Dee</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Clue Step #</label>
+            <input type="number" min="1" id="clueStepInput" placeholder="e.g., 1" required class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Clue Text / Riddle (Printed on Slip)</label>
+            <input type="text" id="clueTextInput" placeholder="e.g., Check where we keep the ice cream cold!" required class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Hiding Spot Note (Not Printed)</label>
+            <input type="text" id="clueLocationInput" placeholder="e.g., Tape to TV" class="w-full rounded-lg border-slate-300 border px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none" />
+          </div>
+
+          <div>
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition shadow">
+              Add Clue
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- On-Screen Overview by Person (Hidden when printing) -->
+      <div class="no-print">
+        <h3 class="text-lg font-bold text-slate-800 mb-3">📋 Clues Organized by Person</h3>
+        <div id="cluesManagerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Compact Printable Clue Slips -->
+      <div>
+        <h3 class="text-lg font-bold text-slate-800 mb-3 no-print">✂️ Printable Clue Slips Preview (Compact Size)</h3>
+        <div id="cluesPrintGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Firebase + App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      deleteDoc,
+      updateDoc,
+      doc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {  
+      apiKey: "AIzaSyB9mQ-j_LxHFuscUiYw-I0RKersb20I4dM",  
+      authDomain: "christmas-tracker-c1c12.firebaseapp.com",  
+      projectId: "christmas-tracker-c1c12",  
+      storageBucket: "christmas-tracker-c1c12.firebasestorage.app",  
+      messagingSenderId: "866286989649",  
+      appId: "1:866286989649:web:158dc6f94aa5fbddd52370"  
+    };  
+
+    // Family configuration
+    const FAMILY = [
+      { name: "Tallon", group: "Kids", badge: "bg-blue-100 text-blue-800" },
+      { name: "Paisley", group: "Kids", badge: "bg-pink-100 text-pink-800" },
+      { name: "Julian", group: "Kids", badge: "bg-amber-100 text-amber-800" },
+      { name: "Marshall", group: "Kids", badge: "bg-emerald-100 text-emerald-800" },
+      { name: "Brian", group: "Parents", badge: "bg-purple-100 text-purple-800" },
+      { name: "Debbie", group: "Parents", badge: "bg-purple-100 text-purple-800" },
+      { name: "Mitch", group: "Us", badge: "bg-red-100 text-red-800" },
+      { name: "Dee", group: "Us", badge: "bg-red-100 text-red-800" }
+    ];
+
+    let gifts = [];
+    let clues = [];
+    let db = null;
+
+    const statusBadge = document.getElementById("dbStatusBadge");
+
+    // Initialize Firestore directly
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+
+      // Live listener for Gifts collection
+      onSnapshot(collection(db, "gifts"), (snapshot) => {
+        gifts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        statusBadge.textContent = "🟢 Firestore Live";
+        statusBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-100 border border-emerald-400/40";
+        renderAll();
+      }, (err) => {
+        console.error("Firestore error:", err);
+        statusBadge.textContent = "🔴 Firestore Error (Check Rules)";
+        statusBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-red-500/20 text-red-200 border border-red-400/40";
+      });
+
+      // Live listener for Clues collection
+      onSnapshot(collection(db, "clues"), (snapshot) => {
+        clues = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAll();
+      });
+    } catch (e) {
+      console.error("Firebase init failed:", e);
+      statusBadge.textContent = "🔴 Firebase Init Failed";
+      statusBadge.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-red-500/20 text-red-200 border border-red-400/40";
+    }
+
+    // Generate a unique random number between 100 and 999
+    function generateUniqueTagNumber() {
+      const usedNumbers = new Set(gifts.map(g => g.tagNumber));
+      if (usedNumbers.size >= 899) {
+        alert("All 3-digit numbers are used!");
+        return Math.floor(1000 + Math.random() * 9000);
+      }
+      let randomNum;
+      do {
+        randomNum = Math.floor(100 + Math.random() * 900);
+      } while (usedNumbers.has(randomNum));
+      return randomNum;
+    }
+
+    // ============================================================================
+    // CRUD OPERATIONS (FIRESTORE)
+    // ============================================================================
+    document.getElementById("giftForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const recipient = document.getElementById("recipientInput").value;
+      const giftName = document.getElementById("giftNameInput").value.trim();
+      const cost = parseFloat(document.getElementById("costInput").value) || 0;
+
+      const newGiftData = {
+        recipient,
+        giftName,
+        cost,
+        tagNumber: generateUniqueTagNumber(),
+        opened: false,
+        createdAt: new Date().toISOString()
+      };
+
+      // Clear inputs immediately for fast entry
+      document.getElementById("giftNameInput").value = "";
+      document.getElementById("costInput").value = "";
+      document.getElementById("giftNameInput").focus();
+
+      if (db) {
+        await addDoc(collection(db, "gifts"), newGiftData);
+      }
+    });
+
+    window.deleteGift = async function(id) {
+      if (db) {
+        await deleteDoc(doc(db, "gifts", id));
+      }
+    };
+
+    window.toggleOpened = async function(id) {
+      const gift = gifts.find(g => g.id === id);
+      if (!gift) return;
+      if (db) {
+        await updateDoc(doc(db, "gifts", id), { opened: !gift.opened });
+      }
+    };
+
+    document.getElementById("clueForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const recipient = document.getElementById("clueRecipientInput").value;
+      const stepNumber = parseInt(document.getElementById("clueStepInput").value, 10) || 1;
+      const clueText = document.getElementById("clueTextInput").value.trim();
+      const hidingSpot = document.getElementById("clueLocationInput").value.trim();
+
+      const newClueData = {
+        recipient,
+        stepNumber,
+        clueText,
+        hidingSpot,
+        createdAt: new Date().toISOString()
+      };
+
+      document.getElementById("clueStepInput").value = stepNumber + 1;
+      document.getElementById("clueTextInput").value = "";
+      document.getElementById("clueLocationInput").value = "";
+      document.getElementById("clueTextInput").focus();
+
+      if (db) {
+        await addDoc(collection(db, "clues"), newClueData);
+      }
+    });
+
+    window.deleteClue = async function(id) {
+      if (db) {
+        await deleteDoc(doc(db, "clues", id));
+      }
+    };
+
+    document.getElementById("clueRecipientInput").addEventListener("change", function() {
+      const person = this.value;
+      const personClues = clues.filter(c => c.recipient === person);
+      document.getElementById("clueStepInput").value = personClues.length + 1;
+    });
+
+    // ============================================================================
+    // UI RENDERING (ATTACHED TO WINDOW FOR INLINE HTML HANDLERS)
+    // ============================================================================
+    window.switchTab = function(tab) {
+      ["tracker", "lookup", "scavenger", "clues"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          btn.className = "px-4 py-2 rounded-t-lg font-semibold bg-slate-50 text-red-700";
+        } else {
+          btn.className = "px-4 py-2 rounded-t-lg font-semibold text-red-100 hover:bg-red-600";
+        }
+      });
+    };
+
+    window.renderTracker = function() {
+      const grandTotal = gifts.reduce((sum, g) => sum + g.cost, 0);
+      document.getElementById("grandTotal").textContent = `$${grandTotal.toFixed(2)}`;
+
+      const grid = document.getElementById("peopleGrid");
+      grid.innerHTML = "";
+
+      FAMILY.forEach(person => {
+        const personGifts = gifts.filter(g => g.recipient === person.name);
+        const totalCost = personGifts.reduce((sum, g) => sum + g.cost, 0);
+
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between overflow-hidden";
+
+        const giftRows = personGifts.length === 0
+          ? `<p class="text-xs text-slate-400 italic py-4 text-center">No gifts added yet.</p>`
+          : personGifts.map(g => `
+              <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-none text-sm">
+                <div class="flex items-center gap-2 pr-2">
+                  <span class="bg-red-700 text-white font-mono text-xs font-bold px-2 py-0.5 rounded">#${g.tagNumber}</span>
+                  <span class="font-medium text-slate-700">${g.giftName}</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="text-slate-600 font-semibold">$${g.cost.toFixed(2)}</span>
+                  <button onclick="deleteGift('${g.id}')" title="Delete" class="text-slate-300 hover:text-red-600 font-bold px-1">✕</button>
+                </div>
+              </div>
+            `).join("");
+
+        card.innerHTML = `
+          <div>
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 class="font-bold text-slate-800 text-lg">${person.name}</h3>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${person.badge}">${person.group}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-slate-400 block">${personGifts.length} Gift(s)</span>
+                <span class="text-lg font-extrabold text-emerald-700">$${totalCost.toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="p-4 max-h-64 overflow-y-auto">
+              ${giftRows}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    };
+
+    window.renderLookup = function() {
+      const query = document.getElementById("searchTagInput").value.trim().toLowerCase();
+      const showSpoilers = document.getElementById("spoilerToggle").checked;
+      const grid = document.getElementById("lookupGrid");
+      grid.innerHTML = "";
+
+      FAMILY.forEach(person => {
+        let personGifts = gifts.filter(g => g.recipient === person.name);
+
+        if (query) {
+          personGifts = personGifts.filter(g =>
+            g.tagNumber.toString().includes(query) ||
+            g.giftName.toLowerCase().includes(query) ||
+            person.name.toLowerCase().includes(query)
+          );
+        }
+
+        const totalCount = gifts.filter(g => g.recipient === person.name).length;
+        const openedCount = gifts.filter(g => g.recipient === person.name && g.opened).length;
+
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between overflow-hidden";
+
+        const giftRows = personGifts.length === 0
+          ? `<p class="text-xs text-slate-400 italic py-4 text-center">${query ? 'No matching gifts.' : 'No gifts added.'}</p>`
+          : personGifts.map(g => `
+              <div class="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-none text-sm ${g.opened ? 'bg-slate-50 opacity-60' : ''}">
+                <div class="flex items-center gap-2 pr-2">
+                  <span class="bg-red-700 text-white font-mono text-xs font-bold px-2 py-0.5 rounded ${g.opened ? 'line-through opacity-75' : ''}">
+                    #${g.tagNumber}
+                  </span>
+                  <span class="font-medium text-slate-800 ${g.opened ? 'line-through text-slate-400' : ''}">
+                    ${showSpoilers ? g.giftName : '<span class="italic text-slate-400">🔒 Present</span>'}
+                  </span>
+                </div>
+                <div class="flex items-center shrink-0">
+                  <input
+                    type="checkbox"
+                    ${g.opened ? 'checked' : ''}
+                    onchange="toggleOpened('${g.id}')"
+                    class="w-5 h-5 accent-emerald-600 rounded cursor-pointer"
+                    title="${g.opened ? 'Mark Unopened' : 'Mark Opened'}"
+                  />
+                </div>
+              </div>
+            `).join("");
+
+        card.innerHTML = `
+          <div>
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 class="font-bold text-slate-800 text-lg">${person.name}</h3>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${person.badge}">${person.group}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-slate-400 block">Progress</span>
+                <span class="text-sm font-bold ${openedCount === totalCount && totalCount > 0 ? 'text-emerald-600' : 'text-slate-700'}">
+                  ${openedCount} / ${totalCount} Opened
+                </span>
+              </div>
+            </div>
+            <div class="p-4 max-h-72 overflow-y-auto">
+              ${giftRows}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    };
+
+    window.renderScavenger = function() {
+      const grid = document.getElementById("scavengerGrid");
+      grid.innerHTML = FAMILY.map(person => {
+        const personGifts = gifts
+          .filter(g => g.recipient === person.name)
+          .sort((a, b) => a.tagNumber - b.tagNumber);
+
+        const numbersHtml = personGifts.length === 0
+          ? `<p class="text-sm text-slate-400 italic">No numbers assigned yet.</p>`
+          : personGifts.map(g => `
+              <span class="border-2 border-slate-800 text-slate-900 font-mono text-xl font-extrabold px-4 py-2 rounded-lg">
+                #${g.tagNumber}
+              </span>
+            `).join("");
+
+        return `
+          <div class="scavenger-number-card bg-white p-6 rounded-xl border-4 border-dashed border-slate-400 flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-center border-b-2 border-slate-200 pb-3 mb-4">
+                <h3 class="text-2xl font-black text-slate-800">🎄 ${person.name}'s Gift Numbers</h3>
+                <span class="text-sm font-bold uppercase text-slate-500">${personGifts.length} Gifts</span>
+              </div>
+              <p class="text-sm text-slate-600 mb-4 font-medium">Look under the tree for presents labeled with these numbers:</p>
+              <div class="flex flex-wrap gap-3">
+                ${numbersHtml}
+              </div>
+            </div>
+            <div class="pt-4 border-t border-slate-200 text-center text-xs text-slate-400 font-semibold uppercase tracking-widest">
+              Merry Christmas! 🎅
+            </div>
+          </div>
+        `;
+      }).join("");
+    };
+
+    window.renderClues = function() {
+      const managerGrid = document.getElementById("cluesManagerGrid");
+      const printGrid = document.getElementById("cluesPrintGrid");
+
+      managerGrid.innerHTML = FAMILY.map(person => {
+        const personClues = clues
+          .filter(c => c.recipient === person.name)
+          .sort((a, b) => a.stepNumber - b.stepNumber);
+
+        const rows = personClues.length === 0
+          ? `<p class="text-xs text-slate-400 italic py-3 text-center">No clues added yet.</p>`
+          : personClues.map(c => `
+              <div class="py-2 border-b border-slate-100 last:border-none text-xs">
+                <div class="flex justify-between items-start gap-2">
+                  <span class="font-bold text-red-700">Clue #${c.stepNumber}:</span>
+                  <button onclick="deleteClue('${c.id}')" class="text-slate-300 hover:text-red-600 font-bold">✕</button>
+                </div>
+                <p class="text-slate-700 mt-0.5 font-medium">"${c.clueText}"</p>
+                ${c.hidingSpot ? `<p class="text-slate-400 mt-0.5">📍 Hide at: ${c.hidingSpot}</p>` : ''}
+              </div>
+            `).join("");
+
+        return `
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
+              <h4 class="font-bold text-slate-800">${person.name}</h4>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${person.badge}">${personClues.length} Clues</span>
+            </div>
+            <div class="max-h-56 overflow-y-auto">
+              ${rows}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      const sortedAllClues = [...clues].sort((a, b) => {
+        if (a.recipient !== b.recipient) return a.recipient.localeCompare(b.recipient);
+        return a.stepNumber - b.stepNumber;
+      });
+
+      if (sortedAllClues.length === 0) {
+        printGrid.innerHTML = `<p class="text-sm text-slate-400 italic col-span-full">Add clues above to generate printable clue slips.</p>`;
+        return;
+      }
+
+      printGrid.innerHTML = sortedAllClues.map(c => `
+        <div class="clue-print-slip bg-white p-4 rounded-lg border-2 border-dashed border-slate-500 flex flex-col justify-between min-h-[140px]">
+          <div class="flex justify-between items-center border-b border-slate-200 pb-1.5 mb-2">
+            <span class="font-black text-slate-800 text-base">🎅 ${c.recipient}</span>
+            <span class="bg-red-700 text-white text-xs font-bold px-2 py-0.5 rounded">Clue #${c.stepNumber}</span>
+          </div>
+          <p class="text-slate-800 font-medium text-sm my-auto py-2 text-center italic">
+            "${c.clueText}"
+          </p>
+          <div class="text-[10px] text-slate-400 text-right uppercase tracking-wider pt-1 border-t border-slate-100">
+            Christmas Scavenger Hunt
+          </div>
+        </div>
+      `).join("");
+    };
+
+    function renderAll() {
+      window.renderTracker();
+      window.renderLookup();
+      window.renderScavenger();
+      window.renderClues();
+    }
+
+    document.getElementById("clueStepInput").value = 1;
+    renderAll();
+  </script>
+</body>
+</html>
